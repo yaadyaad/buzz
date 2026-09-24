@@ -15,7 +15,7 @@ use tokio::sync::{mpsc, oneshot};
 #[path = "pairing_subscription.rs"]
 mod pairing_subscription;
 use pairing_subscription::wait_for_eose;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::{connect_async_tls_with_config, tungstenite::Message};
 use tokio_util::sync::CancellationToken;
 use zeroize::Zeroizing;
 
@@ -357,7 +357,12 @@ async fn pairing_ws_task_inner(
     app: &AppHandle,
     ready: &mut Option<oneshot::Sender<Result<(), String>>>,
 ) -> Result<(), String> {
-    let (ws, _) = connect_async(relay_url)
+    let (ws, _) = connect_async_tls_with_config(
+        relay_url,
+        None,
+        false,
+        buzz_ws_client_pkg::tls::relay_tls_connector(),
+    )
         .await
         .map_err(|e| format!("WebSocket connection failed: {e}"))?;
     let (mut write, mut read) = ws.split();

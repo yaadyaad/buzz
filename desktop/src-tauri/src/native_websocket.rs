@@ -11,7 +11,7 @@ use tauri::{
 use crate::native_websocket_batch::{is_auth_challenge, FrameBatch, BATCH_MAX_SERIALIZED_BYTES};
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio_tungstenite::{
-    connect_async,
+    connect_async_tls_with_config,
     tungstenite::protocol::{frame::coding::CloseCode, CloseFrame, Message},
 };
 use tokio_util::sync::CancellationToken;
@@ -135,7 +135,17 @@ async fn open_connection(
     let connect_cancel = manager.connect_cancel.lock().await.clone();
     let (socket, _) = tokio::select! {
         _ = connect_cancel.cancelled() => return Err("WebSocket connection cancelled".to_string()),
-        result = tokio::time::timeout(CONNECT_TIMEOUT, connect_async(url)) => result
+        // Системные корневые сертификаты (Keychain), а не только встроенные
+        // webpki-roots — иначе самоподписанный CA отвергается с UnknownIssuer.
+        result = tokio::time::timeout(
+            CONNECT_TIMEOUT,
+            connect_async_tls_with_config(
+                url,
+                None,
+                false,
+                buzz_ws_client_pkg::tls::relay_tls_connector(),
+            ),
+        ) => result
             .map_err(|_| "WebSocket connection timed out".to_string())?
             .map_err(|error| error.to_string())?,
     };
@@ -612,7 +622,7 @@ mod tests {
             let (_stream, _) = listener.accept().await.unwrap();
             tokio::time::sleep(Duration::from_millis(100)).await;
         });
-        let result = std::panic::AssertUnwindSafe(tokio_tungstenite::connect_async(format!(
+        let result = std::panic::AssertUnwindSafe(tokio_tungstenite::connect_async_tls_with_config(format!(
             "wss://{address}"
         )))
         .catch_unwind()

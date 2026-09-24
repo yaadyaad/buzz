@@ -32,7 +32,7 @@ use tracing::{debug, warn};
 /// Если системных корней получить не удалось — возвращаем `None`, и
 /// `tokio-tungstenite` использует поведение по умолчанию (webpki-roots).
 /// Так патч ничего не ломает в окружениях, где наши переменные не заданы.
-pub(crate) fn relay_tls_connector() -> Option<Connector> {
+pub fn relay_tls_connector() -> Option<Connector> {
     use rustls::RootCertStore;
 
     let mut roots = RootCertStore::empty();
@@ -107,7 +107,7 @@ pub(crate) fn relay_tls_connector() -> Option<Connector> {
 /// Разбор PEM-файла в сертификаты. Отдельная функция, потому что
 /// `rustls-pemfile` убран в пользу простого сканирования: нам нужны только
 /// блоки CERTIFICATE, а лишняя зависимость в дереве нежелательна.
-pub(crate) fn rustls_pemfile_certs(pem: &[u8]) -> Vec<rustls::pki_types::CertificateDer<'static>> {
+fn rustls_pemfile_certs(pem: &[u8]) -> Vec<rustls::pki_types::CertificateDer<'static>> {
     let text = String::from_utf8_lossy(pem);
     let mut out = Vec::new();
     for block in text.split("-----BEGIN CERTIFICATE-----").skip(1) {
@@ -124,7 +124,7 @@ pub(crate) fn rustls_pemfile_certs(pem: &[u8]) -> Vec<rustls::pki_types::Certifi
 
 /// Минимальный base64-декодер (стандартный алфавит с padding).
 /// Своя реализация вместо зависимости: нужно 20 строк, крейт не оправдан.
-pub(crate) fn base64_decode(s: &str) -> Result<Vec<u8>, ()> {
+fn base64_decode(s: &str) -> Result<Vec<u8>, ()> {
     const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut lut = [255u8; 256];
     for (i, &c) in T.iter().enumerate() {

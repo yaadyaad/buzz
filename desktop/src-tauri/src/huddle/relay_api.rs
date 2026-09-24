@@ -12,7 +12,7 @@
 
 use futures_util::{SinkExt, StreamExt};
 use std::sync::{atomic::AtomicBool, Arc};
-use tokio_tungstenite::{connect_async, tungstenite::Message as WsMsg};
+use tokio_tungstenite::{connect_async_tls_with_config, tungstenite::Message as WsMsg};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -79,7 +79,12 @@ async fn connect_authenticated_audio_socket(
     use nostr::JsonUtil;
 
     let ws_url = format!("{relay_url}/huddle/{channel_id}/audio");
-    let (ws_stream, _) = connect_async(&ws_url)
+    let (ws_stream, _) = connect_async_tls_with_config(
+        &ws_url,
+        None,
+        false,
+        buzz_ws_client_pkg::tls::relay_tls_connector(),
+    )
         .await
         .map_err(|e| format!("audio WS connect failed: {e}"))?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
