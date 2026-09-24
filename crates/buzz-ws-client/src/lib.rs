@@ -1,5 +1,6 @@
 #![deny(unsafe_code)]
 
+mod tls;
 pub mod connection;
 pub mod error;
 pub mod message;

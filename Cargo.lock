@@ -966,6 +966,7 @@ dependencies = [
  "nostr 0.44.7",
  "reqwest 0.13.4",
  "rustls",
+ "rustls-native-certs",
  "serde",
  "serde_json",
  "sha2 0.11.0",
@@ -1621,6 +1622,8 @@ version = "0.1.0"
 dependencies = [
  "futures-util",
  "nostr 0.44.7",
+ "rustls",
+ "rustls-native-certs",
  "serde_json",
  "thiserror 2.0.18",
  "tokio",

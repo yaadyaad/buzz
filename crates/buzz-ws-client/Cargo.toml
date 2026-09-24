@@ -15,3 +15,8 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 url = { workspace = true }
 tracing = { workspace = true }
+# TLS: читает системные корневые сертификаты (macOS Keychain), а не только
+# встроенные webpki-roots. Без этого WebSocket отвергает самоподписанный CA
+# с "invalid peer certificate: UnknownIssuer", хотя HTTP-стек его принимает.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+rustls-native-certs = "0.8"

@@ -39,6 +39,11 @@ tokio-tungstenite = { workspace = true }
 # Codec (bounded line reads)
 tokio-util = { workspace = true }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+# Читает СИСТЕМНЫЕ корневые сертификаты (на macOS — Keychain). Нужен, чтобы
+# WebSocket-стек доверял тому же CA, что и HTTP-стек reqwest.
+# Без него tokio-tungstenite использует ВСТРОЕННЫЕ корни (webpki-roots) и
+# отвергает самоподписанный CA: "invalid peer certificate: UnknownIssuer".
+rustls-native-certs = "0.8"
 futures-util = { workspace = true }
 
 # HTTP (channel discovery REST API)

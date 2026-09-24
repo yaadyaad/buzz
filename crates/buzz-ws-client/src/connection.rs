@@ -5,7 +5,9 @@ use futures_util::{SinkExt, StreamExt};
 use nostr::{Event, Keys, Tag};
 use serde_json::{json, Value};
 use tokio::time::timeout;
-use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{
+    connect_async_tls_with_config, tungstenite::Message, MaybeTlsStream, WebSocketStream,
+};
 use tracing::debug;
 
 use crate::error::WsClientError;
@@ -50,9 +52,16 @@ impl NostrWsConnection {
             .parse::<url::Url>()
             .map_err(|e| WsClientError::Url(e.to_string()))?;
 
-        let (ws, _response) = connect_async(parsed.as_str())
-            .await
-            .map_err(WsClientError::WebSocket)?;
+        // Используем системные корневые сертификаты (Keychain на macOS),
+        // чтобы самоподписанный CA работал так же, как в HTTP-стеке.
+        let (ws, _response) = connect_async_tls_with_config(
+            parsed.as_str(),
+            None,
+            false,
+            crate::tls::relay_tls_connector(),
+        )
+        .await
+        .map_err(WsClientError::WebSocket)?;
 
         debug!("connected to relay at {url}");
 
