@@ -96,6 +96,14 @@ pub(crate) fn known_skill_dirs() -> impl Iterator<Item = &'static str> {
     KNOWN_ACP_RUNTIMES.iter().filter_map(|p| p.skill_dir)
 }
 
+/// Workspace root derived from the compile-time manifest dir.
+///
+/// Only meaningful for `just dev` builds, where the freshly compiled debug
+/// sidecars live in the checkout's `target/`. A packaged `.app` has no
+/// `target/` beside it, and baking this path into a release binary makes the
+/// installed app silently prefer stale sidecars in the source checkout over
+/// the ones shipped inside `Contents/MacOS/` (see [`command_search_dirs`]).
+#[cfg(debug_assertions)]
 fn workspace_root_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
@@ -363,8 +371,24 @@ fn profile_target_dirs(root: &Path) -> [PathBuf; 2] {
     }
 }
 
+/// Candidate directories searched for sidecar executables (`buzz-acp`,
+/// `buzz-agent`, …), in precedence order:
+///   1. debug builds only: the checkout's `target/{debug,release}` — `just dev`
+///      compiles fresh sidecars there and they must win over stale ones.
+///   2. the process working directory's `target/{debug,release}`.
+///   3. the directory holding the running executable — for a packaged `.app`
+///      that is `Contents/MacOS/`, where tauri ships the sidecars.
+///
+/// The compile-time workspace root is deliberately excluded from release
+/// builds: baking it in made an installed app resolve sidecars out of
+/// `~/.buzz/REPOS/<checkout>/target/release/`, so deleting that checkout broke
+/// the app even though the bundled sidecars were present and correct.
 fn command_search_dirs() -> Vec<PathBuf> {
+    #[cfg(debug_assertions)]
     let mut dirs = profile_target_dirs(&workspace_root_dir()).to_vec();
+    #[cfg(not(debug_assertions))]
+    let mut dirs: Vec<PathBuf> = Vec::new();
+
     if let Ok(current_dir) = std::env::current_dir() {
         dirs.extend(profile_target_dirs(&current_dir));
     }
